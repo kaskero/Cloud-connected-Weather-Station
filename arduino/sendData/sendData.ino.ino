@@ -258,6 +258,7 @@ void loop() {
     message.data[4] = 0.0;
   }
 
+  delay(5000);
   float tension = neurgailua.tentsioaIrakurri();
   float corriente = neurgailua.kontsumoaIrakurri();
   message.data[5] = tension;
@@ -280,12 +281,11 @@ void loop() {
   xbee.flush();
   Serial.println(F("Estructura enviada"));
   digitalWrite(13, HIGH);
-  delay(100); // le damos un margen de tiempo para que de tiempo a enviar los datos
+  delay(1000); // le damos un margen de tiempo para que de tiempo a enviar los datos
   digitalWrite(13, LOW);
   digitalWrite(7, HIGH); // dormir xbee
 
   Serial.print(F("Arduino sleeps..."));
-  delay(1000);
   sleepArduino(); // dormir Arduino
   delay(1000);
   Serial.println(("and wakes up"));
@@ -293,7 +293,7 @@ void loop() {
 
 // Rutina de atención a la interrupción del Watchdog.
 ISR(WDT_vect) {
-  if(wdt_count < 60) // despertar cada 300s
+  if(wdt_count < 300) // despertar cada 300s
     wdt_count++;
   else {
     f_wakeup = 1;
