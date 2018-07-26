@@ -1,6 +1,6 @@
-#include "U8glib.h"
-#include <DS2745_lib.h>
 #include <Wire.h>
+#include <DS2745_lib.h>
+#include "U8glib.h"
 
 U8GLIB_SH1106_128X64 u8g(U8G_I2C_OPT_NONE);  // I2C / TWI
 
@@ -17,7 +17,7 @@ void setup() {
 
   neurgailua.abiarazi();
 
-    u8g.setFont(u8g_font_fub17);
+  u8g.setFont(u8g_font_fub17);
 
   pinMode(13, OUTPUT);
   digitalWrite(13, LOW);
@@ -33,11 +33,12 @@ void loop() {
 
   datuakBistaratu(tentsioa, kontsumoa);
 
-    if(flag) {
-      digitalWrite(13, !digitalRead(13));
-      flag = false;
-    }
+  if(flag) {
+    digitalWrite(13, !digitalRead(13));
+    flag = false;
+  }
 }
+
 void set_timer2_interrupt() {
   cli();
   
@@ -84,6 +85,7 @@ ISR(TIMER2_COMPA_vect) {
     cont++;
   }
 }
+
 void datuakBistaratu(float tentsioa, float kontsumoa) {
   u8g.firstPage();  
   do {

@@ -59,7 +59,7 @@ float DS2745_lib::kontsumoaIrakurri() {
   byte LSBcurrent = Wire.read(); 
 
   unsigned int current_ADC = ((MSBcurrent << 8) | LSBcurrent); 
-  current_ADC = 0x7FFF - current_ADC;
+  if(sign) current_ADC = 0x7FFF - current_ADC;
 
   float current = current_ADC * 0.0625; //current = current_ADC * 0.0625; // Units: 1.5625uV/Rsns --> 1.5625uV/0.025ohm=62.5uA
   if(sign) current = -current;

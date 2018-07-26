@@ -1,5 +1,5 @@
-#include <DS2745_lib.h>
 #include <Wire.h>
+#include <DS2745_lib.h>
 
 DS2745_lib neurgailua;
 
@@ -9,7 +9,6 @@ void setup() {
   Wire.begin();
 
   neurgailua.abiarazi();
-
 }
 
 void loop() {

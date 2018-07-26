@@ -155,6 +155,7 @@ static void smartDelay(unsigned long ms) {
 void loop() {
   bool flag_enviar_gps = 1;
   digitalWrite(4, HIGH); // despertamos el GPS
+  delay(10000);
   Serial.println(F("Trying to get an updated GPS location..."));
   // warm start
   int i=0, j=0;
@@ -258,7 +259,7 @@ void loop() {
     message.data[4] = 0.0;
   }
 
-  delay(5000);
+  delay(10000);
   float tension = neurgailua.tentsioaIrakurri();
   float corriente = neurgailua.kontsumoaIrakurri();
   message.data[5] = tension;
@@ -281,11 +282,12 @@ void loop() {
   xbee.flush();
   Serial.println(F("Estructura enviada"));
   digitalWrite(13, HIGH);
-  delay(1000); // le damos un margen de tiempo para que de tiempo a enviar los datos
+  delay(100); // le damos un margen de tiempo para que de tiempo a enviar los datos
   digitalWrite(13, LOW);
   digitalWrite(7, HIGH); // dormir xbee
 
   Serial.print(F("Arduino sleeps..."));
+  delay(100);
   sleepArduino(); // dormir Arduino
   delay(1000);
   Serial.println(("and wakes up"));
