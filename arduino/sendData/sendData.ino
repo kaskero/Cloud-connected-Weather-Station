@@ -162,7 +162,7 @@ void loop() {
   float latitud=0, longitud=0;
   float h_dop = 0.80;
   do {
-    smartDelay(100);
+    smartDelay(100); // 9600bps/8=1200Bps --> 1200Bps/10=120 byte per smartDelay
     if(gps.location.isUpdated() && gps.hdop.hdop() <= h_dop && gps.satellites.value() >= 7) {
       latitud += gps.location.lat();
       longitud += gps.location.lng();
