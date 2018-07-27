@@ -155,7 +155,7 @@ static void smartDelay(unsigned long ms) {
 void loop() {
   bool flag_enviar_gps = 1;
   digitalWrite(4, HIGH); // despertamos el GPS
-  delay(10000);
+  smartDelay(10000);
   Serial.println(F("Trying to get an updated GPS location..."));
   // warm start
   int i=0, j=0;
