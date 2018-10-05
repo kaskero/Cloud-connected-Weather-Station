@@ -13,7 +13,7 @@ TinyGPSPlus gps; // Se declara una instancia de la librería
 #define DHTTYPE DHT22  // Definimos el tipo del sensor 
 DHT dht(DHTPIN, DHTTYPE); // Declaramos una instancia de la librería del sensor defininiendo el pin y el tipo
 SFE_BMP180 bmp180; // Se declara una instancia de la librería del sensor de presión
-DS2745_lib neurgailua; // Se declara una instancia de la librería del monitor de batería
+DS2745_lib batt; // Se declara una instancia de la librería del monitor de batería
 
 SoftwareSerial xbee(8, 9); // Declaramos la variable xbee donde 8 es RX y 9 es TX y así emular un puerto serie mediante la librería SoftwareSerial
 
@@ -27,8 +27,7 @@ struct XBeeMessage {
 };
 struct XBeeMessage message;
 
-const int sample_num = 10;
-const int sample_num2 = 50;
+const int sample_num = 48;
 float array_latitud[sample_num]; // circular buffer
 float array_longitud[sample_num]; // circular buffer
 float sum_array_latitud = 0;
@@ -42,7 +41,7 @@ void setup() {
   Serial.println(F("Inicializando sensores DHT22, BMP180 y DS2745..."));
   dht.begin(); // Inicializamos el sensor
   bmp180.begin(); // Inicializamos el sensor
-  neurgailua.abiarazi(); // Inicializamos el sensor
+  batt.abiarazi(); // Inicializamos el sensor
 
   Serial.println(F("Despertando GPS..."));
   pinMode(4, OUTPUT);
@@ -50,12 +49,13 @@ void setup() {
   
   pinMode(7, OUTPUT);
   digitalWrite(7, LOW); // xbee despierto
-  delay(50);
+  delay(50); // xbee wake-up time: 13.2ms
   xbee.begin(9600); // inicializamos el puerto serie del XBee
   xbee_conf();
+  digitalWrite(7, HIGH); // xbee dormido
 
   gps_conf();
-  //gps_read_init();
+  gps_read_init();
  
   Serial.println(F("Configurando modo sleep del Arduino..."));
   setupWDT();
@@ -74,7 +74,6 @@ void xbee_conf() {
   Serial.println(F("Saliendo del modo comando"));
   xbee.print(F("ATCN")); xbee.write(0x0D); // retorno de carro y salimos
   delay(3000);
-  digitalWrite(7, HIGH); // xbee dormido
 }
 
 void gps_conf() {
@@ -107,34 +106,24 @@ void gps_conf() {
 }
 
 void gps_read_init() {
-  Serial.println(F("Trying to get a valid GPS location..."));
-  // cold start
-  int i=0, j=0;
-  float latitud=0, longitud=0;
-  float tension = 0.0, corriente = 0.0;
-  do {
-    smartDelay(100);
-    if(gps.location.isUpdated() && gps.hdop.hdop() <= 1.00 && gps.satellites.value() >= 7) {
-      latitud += gps.location.lat();
-      longitud += gps.location.lng();
+  Serial.println(F("Trying to get a GPS location... Cold start..."));
+  smartDelay(120000); // 9600bps/8=1200Bps --> 1200Bps/10=120 byte per smartDelay
+  for(int i=0; i< sample_num; i++) {
+    int j=0;
+    do {
+      smartDelay(100);
       j++;
     }
-    if(j==sample_num2) {
-      latitud = latitud/sample_num2;
-      longitud = longitud/sample_num2;
-      Serial.print(latitud, 7);Serial.print(" "); Serial.println(longitud, 7);
-      
-      array_latitud[i] = latitud;
-      array_longitud[i] = longitud;
-      sum_array_latitud += array_latitud[i];
-      sum_array_longitud += array_longitud[i];
-      
-      latitud=0, longitud=0;
-      i++, j=0;
-    }
-    tension += neurgailua.tentsioaIrakurri();
-    corriente += neurgailua.kontsumoaIrakurri();
-  } while(i<sample_num);
+    while(!gps.location.isUpdated() && j<100);
+    float latitud = gps.location.lat();
+    float longitud = gps.location.lng();    
+    Serial.print(latitud, 7);Serial.print(F(" ")); Serial.println(longitud, 7);
+        
+    array_latitud[i] = latitud;
+    array_longitud[i] = longitud;
+    sum_array_latitud += array_latitud[i];
+    sum_array_longitud += array_longitud[i];
+  }
 }
   
 void setupWDT() {
@@ -147,55 +136,39 @@ void setupWDT() {
 // This custom version of delay() ensures that the gps object is being "fed".
 static void smartDelay(unsigned long ms) {
   unsigned long start = millis();
-  do {
-    if(ss.available()) gps.encode(ss.read());
-  } while(millis() - start < ms);
+  do if(ss.available()) gps.encode(ss.read());
+  while(millis() - start < ms);
 }
 
 void loop() {
   bool flag_enviar_gps = 1;
   digitalWrite(4, HIGH); // despertamos el GPS
-  smartDelay(10000);
-  Serial.println(F("Trying to get an updated GPS location..."));
-  // warm start
-  int i=0, j=0;
-  float latitud=0, longitud=0;
-  float h_dop = 0.80;
+  Serial.println(F("Trying to get an updated GPS location... Warm start"));
+  smartDelay(120000); // 9600bps/8=1200Bps --> 1200Bps/10=120 byte per smartDelay
+  int j=0;
   do {
-    smartDelay(100); // 9600bps/8=1200Bps --> 1200Bps/10=120 byte per smartDelay
-    if(gps.location.isUpdated() && gps.hdop.hdop() <= h_dop && gps.satellites.value() >= 7) {
-      latitud += gps.location.lat();
-      longitud += gps.location.lng();
-      j++;
-      Serial.print(gps.hdop.hdop()); Serial.print(" "); 
-      Serial.print(gps.satellites.value()); Serial.print(" "); 
-      Serial.print(latitud/j, 7); Serial.print(" "); Serial.println(longitud/j, 7);
-    }
-    i++;
-    if(i==150) h_dop = 1.00;
-  } while(j<sample_num2 && i<300);
+    smartDelay(1000);
+    j++;
+  }
+  while(!(gps.hdop.hdop()<0.7) && j<60);
+  float latitud = gps.location.lat();
+  float longitud = gps.location.lng();    
+  Serial.print(F("GPS: ")); Serial.print(latitud,7); Serial.print(F(", ")); Serial.println(longitud,7);
   digitalWrite(4, LOW); // dormimos el GPS
   Serial.println(F("Done!"));
 
-  if(i==300 && j==0) {
-    Serial.println(F("Failed to read from GSP sensor!"));
-    flag_enviar_gps = 1;
-  } else {
-    sum_array_latitud -= array_latitud[0];
-    sum_array_longitud -= array_longitud[0];
-    // shift circular buffer as FIFO
-    for(int i=1; i<sample_num; i++) {
-      array_latitud[i-1] = array_latitud[i];
-      array_longitud[i-1] = array_longitud[i];
-    }
-    array_latitud[sample_num-1] = latitud/j;
-    array_longitud[sample_num-1] = longitud/j;
-    sum_array_latitud += array_latitud[sample_num-1];
-    sum_array_longitud += array_longitud[sample_num-1];
-    latitud = sum_array_latitud / sample_num; 
-    longitud = sum_array_longitud / sample_num;
-    Serial.print(F("GPS: ")); Serial.print(latitud,7); Serial.print(F(", ")); Serial.println(longitud,7);
+  sum_array_latitud -= array_latitud[0];
+  sum_array_longitud -= array_longitud[0];
+  // shift circular buffer as FIFO
+  for(int i=1; i<sample_num; i++) {
+    array_latitud[i-1] = array_latitud[i];
+    array_longitud[i-1] = array_longitud[i];
   }
+  array_latitud[sample_num-1] = latitud;
+  array_longitud[sample_num-1] = longitud;
+  sum_array_latitud += array_latitud[sample_num-1];
+  sum_array_longitud += array_longitud[sample_num-1];
+  Serial.print(F("GPS avg.: ")); Serial.print(latitud,7); Serial.print(F(", ")); Serial.println(longitud,7);
 
   bool flag_enviar_dht22 = 1;
   float temperature1 = dht.readTemperature(); // Obtenemos la temperatura
@@ -259,9 +232,9 @@ void loop() {
     message.data[4] = 0.0;
   }
 
-  delay(10000);
-  float tension = neurgailua.tentsioaIrakurri();
-  float corriente = neurgailua.kontsumoaIrakurri();
+  //delay(10000);
+  float tension = batt.tentsioaIrakurri();
+  float corriente = batt.kontsumoaIrakurri();
   message.data[5] = tension;
   message.data[6] = corriente;
 
@@ -290,12 +263,12 @@ void loop() {
   delay(100);
   sleepArduino(); // dormir Arduino
   delay(1000);
-  Serial.println(("and wakes up"));
+  Serial.println(F("and wakes up"));
 }
 
 // Rutina de atención a la interrupción del Watchdog.
 ISR(WDT_vect) {
-  if(wdt_count < 300) // despertar cada 300s
+  if(wdt_count < 600) // despertar cada 600s
     wdt_count++;
   else {
     f_wakeup = 1;

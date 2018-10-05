@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Battery monitor</title>
+
+        <script type="text/javascript">
+            var jsonData;
+            function myCallback(dataWeGotViaJsonp) {
+                jsonData = dataWeGotViaJsonp['feeds']; <!-- jsonData es un array -->
+            }
+        </script>
+        <script type="text/javascript"
+                src="https://api.thingspeak.com/channels/546370/feeds.json?days=3&timezone=Europe%2FMadrid&callback=myCallback">
+        </script>
+
+        <script src="https://www.google.com/jsapi"></script>
+
+        <script>
+            // load chart lib
+            google.load('visualization', '1', {packages: ['corechart', 'gauge']});
+
+            function drawLineChart() {
+                var data = new google.visualization.DataTable();
+                data.addColumn('datetime', 'Time');
+                data.addColumn('number', 'Vbatt');
+                data.addColumn('number', 'Ibatt');
+                for(var i = 0; i < jsonData.length; i++) {
+                    var timestamp = jsonData[i]['created_at'];
+                    var voltage = parseFloat(jsonData[i]['field5']);
+                    var current = parseFloat(jsonData[i]['field6']);
+                    var latitude = parseFloat(jsonData[i]['field7']);
+                    if(voltage < parseFloat("4.0")) {
+                        data.addRow([new Date(timestamp), voltage, current]);
+                    };
+                };
+
+                lineChart = new google.visualization.LineChart(document.getElementById('chart'));
+                var chart_opts = {
+                    title: 'Battery monitor', legend: {position: 'top'},
+                    curveType: 'function', colors: ['red', 'blue'],
+                    series: {0: {targetAxisIndex: 0}, 1: {targetAxisIndex: 1}},
+                    vAxes: {0: {title: 'Vbatt (V)'}, 1: {title: 'Ibatt (mA)'}}
+                };
+
+                google.visualization.events.addListener(lineChart, 'ready', function () {
+                    document.getElementById("loading").innerHTML = "";
+                });
+
+                lineChart.draw(data, chart_opts);
+            };
+
+            google.setOnLoadCallback(drawLineChart);
+        </script>
+
+        <style>
+            html, body { height: 100%; }
+            div#chart { height: 95%; }
+        </style>
+    </head>
+    <body>
+        <div id="loading">DOWNLOADING data AND LOADING charts... <br/>Be patient. Good things take time.</div>
+        <div align="center" id="chart"></div>
+    </body>
+</html>

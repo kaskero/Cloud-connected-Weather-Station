@@ -56,15 +56,15 @@ Process p1;
 
 void setup() { 
   wdt_disable();
-   
+
   Bridge.begin(); // Initialize Bridge
+    
   Serial.begin(115200); // Inicializamos el puerto serie
   Serial.println(F("setup() begin"));
+  
   xbee.begin(9600); // Inicializamos el puerto serie del XBee
   
-  do {} while( u8g.nextPage() );
   pantalla_inicio();
-  do {} while( u8g.nextPage() );
 
   String p_output = "255.255.255.255";
   exec_cmd(F("ifconfig wlan0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'"), &p_output);
@@ -86,7 +86,7 @@ void pantalla_inicio() {
     u8g.drawStr(67, 49, F("Euskal Herriko"));
     u8g.drawStr(67, 59, F("Unibertsitatea"));
   } while( u8g.nextPage() );
-  delay(3000);
+  delay(1000);
 }
 
 void exec_cmd(String cmd, String* output) {
@@ -99,17 +99,14 @@ void exec_cmd(String cmd, String* output) {
 
 void loop() {
   if(xbee.available() < sizeof(message)) {
-    if(!p1.running()) {
-      p1.close();
-      while(p1.available() > 0) {
-        char c = p1.read();
-        Serial.print(c);
-      }
-    }
-    wdt_reset();
-  } else { 
-    if(p1.running()) p1.close();
+    while(p1.available() > 0) {
+      char c = p1.read();
+      Serial.print(c);
+    } 
+    if(!p1.running()) p1.close();
     
+    wdt_reset();
+  } else {   
     xbee.readBytes((byte*)&message, sizeof(message)); // leemos los datos recibidos
     hume = message.data[0];
     temp = message.data[1];
@@ -135,11 +132,7 @@ void loop() {
   
     if(crc_R != crc_L) return; // si el CRC calculado y el obtenido son diferentes significa que algún dato se ha perdido o es diferente
     else {    
-      do {} while( u8g.nextPage() );
-      delay(100);
       pantalla_inicio();
-      do {} while( u8g.nextPage() );
-      delay(100);
 
       String p_output = "2018-02-13 23:59:59";
       exec_cmd(F("date '+%Y-%m-%d %H:%M:%S'"), &p_output);
@@ -155,6 +148,8 @@ void loop() {
       p1.addParameter(String(tension,2));
       p1.addParameter(String(corriente,2));
       p1.runAsynchronously();     
+
+      wdt_reset();
     }
   }
 }
@@ -164,7 +159,6 @@ uint8_t XORchecksum8(const byte *data, size_t dataLength) {
   for(size_t i = 0; i < dataLength; i++) {
     value ^= (uint8_t)data[i];
   }
-  
   return ~value;
 }
 

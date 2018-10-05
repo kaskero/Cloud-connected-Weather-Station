@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>GPS on Google Maps</title>
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+	<script type="text/javascript">
+        var jsonData;
+        function myCallback(dataWeGotViaJsonp) {
+            jsonData = dataWeGotViaJsonp['feeds']; <!-- jsonData es un array -->
+        }		
+    </script>
+	<script type="text/javascript"
+            src="https://api.thingspeak.com/channels/546370/feeds.json?days=3&timezone=Europe%2FMadrid&callback=myCallback">
+    </script>
+</head>
+<body>
+    <script>
+		function initMap() {
+            var map = new google.maps.Map(document.getElementById('map'),
+                {mapTypeId: 'satellite',
+                 zoom: 18,
+                 center: new google.maps.LatLng(43.263832, -2.9513695),
+                });
+            map.setTilt(0);
+
+            for (i = 0; i < jsonData.length; i++) {
+                var latitude = parseFloat(jsonData[i]['field7']);
+                var longitude = parseFloat(jsonData[i]['field8']);
+                if(latitude > parseFloat("0.0")) {
+                    var pos = new google.maps.LatLng(jsonData[i]["field7"], jsonData[i]["field8"])
+
+                    var marker = new google.maps.Marker({
+                        position: pos,
+                        title: jsonData[i]["entry_id"].toString(),
+                        map: map
+                    });
+
+                    createInfoWindow(marker, jsonData[i]);
+                };
+            };
+        }
+
+        function createInfoWindow(marker, sample) {
+            var infowindow = new google.maps.InfoWindow(
+                {content: createInfoWindowContent(sample)});
+
+            marker.addListener('click', function() {
+                infowindow.open(marker.get('map'), marker);
+            });
+        }
+
+        function createInfoWindowContent(sample) {
+            return ["Date: " + new Date(sample["created_at"]).toLocaleString(),
+                    "Temp: " + sample["field1"],
+                    "Humidity: " + sample["field2"],
+                    "Pressure: " + sample["field4"],
+                    "Vbatt: " + sample["field5"],
+                    "Ibatt: " + sample["field6"],
+                    "Lat: " + sample["field7"],
+                    "Lng: " + sample["field8"]
+            ].join('<br>');
+		}
+	</script>
+	<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAqdE2f2KKKiH9Y_CKcvGeFv3WKivaNKFs&callback=initMap">
+    </script>
+	<div id="map"></div>
+</body>
+</html>
