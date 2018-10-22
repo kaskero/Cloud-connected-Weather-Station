@@ -27,7 +27,7 @@ struct XBeeMessage {
 };
 struct XBeeMessage message;
 
-const int sample_num = 48;
+const int sample_num = 6;
 float array_latitud[sample_num]; // circular buffer
 float array_longitud[sample_num]; // circular buffer
 float sum_array_latitud = 0;
@@ -55,7 +55,7 @@ void setup() {
   digitalWrite(7, HIGH); // xbee dormido
 
   gps_conf();
-  gps_read_init();
+  gps_init();
  
   Serial.println(F("Configurando modo sleep del Arduino..."));
   setupWDT();
@@ -105,19 +105,19 @@ void gps_conf() {
   delay(3000);
 }
 
-void gps_read_init() {
+void gps_init() {
   Serial.println(F("Trying to get a GPS location... Cold start..."));
-  smartDelay(120000); // 9600bps/8=1200Bps --> 1200Bps/10=120 byte per smartDelay
+  smartDelay(120000);
   for(int i=0; i< sample_num; i++) {
     int j=0;
     do {
-      smartDelay(100);
+      smartDelay(1000);
       j++;
     }
-    while(!gps.location.isUpdated() && j<100);
+    while(!(gps.hdop.hdop()<0.7) && j<60);
     float latitud = gps.location.lat();
     float longitud = gps.location.lng();    
-    Serial.print(latitud, 7);Serial.print(F(" ")); Serial.println(longitud, 7);
+    Serial.print(latitud, 7); Serial.print(F(" ")); Serial.println(longitud, 7);
         
     array_latitud[i] = latitud;
     array_longitud[i] = longitud;
@@ -144,7 +144,9 @@ void loop() {
   bool flag_enviar_gps = 1;
   digitalWrite(4, HIGH); // despertamos el GPS
   Serial.println(F("Trying to get an updated GPS location... Warm start"));
-  smartDelay(120000); // 9600bps/8=1200Bps --> 1200Bps/10=120 byte per smartDelay
+  smartDelay(120000); // 9600bps/8=1200Bps 
+                      // NMEA messages have a maximum length of 82 characters
+                      // 1200Bps / 82Bpm ~ 14.6 messages per second
   int j=0;
   do {
     smartDelay(1000);
@@ -155,7 +157,6 @@ void loop() {
   float longitud = gps.location.lng();    
   Serial.print(F("GPS: ")); Serial.print(latitud,7); Serial.print(F(", ")); Serial.println(longitud,7);
   digitalWrite(4, LOW); // dormimos el GPS
-  Serial.println(F("Done!"));
 
   sum_array_latitud -= array_latitud[0];
   sum_array_longitud -= array_longitud[0];

@@ -40,17 +40,16 @@
             for (i = 0; i < jsonData.length; i++) {
                 var latitude = parseFloat(jsonData[i]['field7']);
                 var longitude = parseFloat(jsonData[i]['field8']);
-                if(latitude > parseFloat("0.0")) {
-                    var pos = new google.maps.LatLng(jsonData[i]["field7"], jsonData[i]["field8"])
 
-                    var marker = new google.maps.Marker({
-                        position: pos,
-                        title: jsonData[i]["entry_id"].toString(),
-                        map: map
-                    });
+                var pos = new google.maps.LatLng(jsonData[i]["field7"], jsonData[i]["field8"])
 
-                    createInfoWindow(marker, jsonData[i]);
-                };
+                var marker = new google.maps.Marker({
+                    position: pos,
+                    title: jsonData[i]["entry_id"].toString(),
+                    map: map
+                });
+
+                createInfoWindow(marker, jsonData[i]);
             };
         }
 

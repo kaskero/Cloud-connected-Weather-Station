@@ -29,9 +29,7 @@
                     var voltage = parseFloat(jsonData[i]['field5']);
                     var current = parseFloat(jsonData[i]['field6']);
                     var latitude = parseFloat(jsonData[i]['field7']);
-                    if(voltage < parseFloat("4.0")) {
-                        data.addRow([new Date(timestamp), voltage, current]);
-                    };
+                    data.addRow([new Date(timestamp), voltage, current]);
                 };
 
                 lineChart = new google.visualization.LineChart(document.getElementById('chart'));

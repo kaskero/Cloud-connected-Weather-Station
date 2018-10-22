@@ -28,9 +28,7 @@
                     var timestamp = jsonData[i]['created_at'];
                     var latitude = parseFloat(jsonData[i]['field7']);
                     var longitude = parseFloat(jsonData[i]['field8']);
-                    if(latitude > parseFloat("0.0")) {
-                        data.addRow([new Date(timestamp), latitude, longitude]);
-                    };
+                    data.addRow([new Date(timestamp), latitude, longitude]);
                 };
 
                 var formatter = new google.visualization.NumberFormat({fractionDigits: 7});
